@@ -1,0 +1,51 @@
+---
+title: "Other statistical tests"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## "Please do stats test XYZ"
+
+When you are collecting data for other modules, or in your Stage 3 projects, you
+will often find that a member of staff is suggesting that you analyse your data
+with a statistical test that you have not heard of. However, many of these 
+'standard' statistical tests can be considered to be linear models. If you find
+it less confusing to consider them as forms of linear models, then feel free to
+stick to that. If you prefer to use the built-in R commands for each test, then
+that is fine also. **What matters is the underlying hypothesis** that you are
+trying to test. This will determine the exact structure of your `lm` or `glm`
+function, or which built-in R command to use instead.
+
+This website simply compares some of the commonly encounted statistical tests
+in their __linear model__ format and their __built-in__ format. You can find
+full details of this philosphy for teaching statistics at https://lindeloev.github.io/tests-as-linear/
+
+### t-distribution
+A lot of 'standard' statistical tests use the t-distribution, and you will often
+here people refer to 't-tests', 'paired t-tests', 'one-sample t-tests'. These are
+generally introduced early in statistics courses, as they are all relatively 
+simple tests, although you have to know when to apply which one. A disadvantage is
+that in Stage 3, when I ask students **"How are you planning to analyse your data?"**
+the most common answer is **"Oh, perhaps a t-test"** because this is the first 
+stats test they learnt and hence the easiest to remember. But first a quiz about
+drinks (which yes, does link to t-tests)...
+
+```{r quiz}
+question("Which alcoholic beverage is related to the t-distribution?",
+         answer("Smirnoff vodka"),
+         answer("Rioja wine"),
+         answer("Guiness stout", correct = TRUE),
+         answer("Newcastle Brown Ale"),
+         answer("Jameson's whiskey"),
+         allow_retry = TRUE
+)
+```
+
+Even if you managed to find the correct answer, you're probably puzzled (unless
+you already know the strange story). Keep reading...
