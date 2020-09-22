@@ -6,6 +6,8 @@ runtime: shiny_prerendered
 
 ```{r setup, include=FALSE}
 library(learnr)
+library(mosaic)
+library(ggformula)
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -49,3 +51,33 @@ question("Which alcoholic beverage is related to the t-distribution?",
 
 Even if you managed to find the correct answer, you're probably puzzled (unless
 you already know the strange story). Keep reading...
+
+## The t-distribution
+This distribution looks very similar to a normal distribution in that it forms a
+bell-shaped curve. The differences are only obvious when one is laid on top of
+the other, with the t-distribution in red:
+
+```{r t_vs_normal}
+xvs <- seq(-4, 4, 0.01)
+plot(xvs, dnorm(xvs), type="l", lty=2, ylab="Probability density", xlab="Deviates")
+lines(xvs, dt(xvs, df=5), col="red")
+```
+
+The two curves are very similar, with the t-distribution having "fatter" tails. It
+is generall known as **Student's t-distribution**. It was developed by W.S.Gossett
+in 1908 who worked for Guiness Breweries in Dublin
+
+![Guinness and t-distribution](www/Gosset.jpg)
+
+Gossett wanted to distinguish between the quality of Guiness stout based on the
+different types of malt used in the brewing process, and developed the t-distribution
+instead of the normal distribution as it was slightly more robust with small sample
+sizes. However, Guiness Breweries wanted to keep the method secret, and would not
+let him publish the technique. Gossett then published it under the pseudonym "Student"
+and the name has stuck.
+
+You will often encounter t-statistics, often to check whether an estimated parameter
+from a model, such as an intercept or gradient, differs from zero. If the parameter
+is big (large negative or positive value), then the t-statistic will statistically
+significant (p<0.05), whereas if the parameter is roughly zero, the t-statistic will
+be non-significant (p>0.05).
