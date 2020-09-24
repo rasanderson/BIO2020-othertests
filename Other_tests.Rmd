@@ -8,7 +8,66 @@ runtime: shiny_prerendered
 library(learnr)
 library(mosaic)
 library(ggformula)
+library(patchwork)
+library(sm)
 knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, echo=FALSE}
+# Functions from example site
+# Generate normal data with known parameters
+rnorm_fixed = function(N, mu = 0, sd = 1)
+  scale(rnorm(N)) * sd + mu
+signed_rank = function(x) sign(x) * rank(abs(x))
+# Plot style.
+theme_axis = function(P,
+                      jitter = FALSE,
+                      xlim = c(-0.5, 2),
+                      ylim = c(-0.5, 2),
+                      legend.position = NULL) {
+  P = P + theme_bw(15) +
+    geom_segment(
+      x = -1000, xend = 1000,
+      y = 0, yend = 0,
+      lty = 2, color = 'dark gray', lwd = 0.5
+    ) +
+    geom_segment(
+      x = 0, xend = 0,
+      y = -1000, yend = 1000,
+      lty = 2, color = 'dark gray', lwd = 0.5
+    ) +
+    coord_cartesian(xlim = xlim, ylim = ylim) +
+    theme(
+      axis.title = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      legend.position = legend.position
+    )
+  
+  # Return jittered or non-jittered plot?
+  if (jitter) {
+    P + geom_jitter(width = 0.1, size = 2)
+  }
+  else {
+    P + geom_point(size = 2)
+  }
+}
+
+```
+
+
+```{r, echo=FALSE}
+set.seed(40)
+# Data from example site
+y = c(rnorm(15), exp(rnorm(15)), runif(20, min = -3, max = 0))  # Almost zero mean, not normal
+x = rnorm_fixed(50, mu = 0, sd = 1)  # Used in correlation where this is on x-axis
+y2 = rnorm_fixed(50, mu = 0.5, sd = 1.5)  # Used in two means
+
+# Long format data with indicator
+value = c(y, y2)
+group = rep(c('y1', 'y2'), each = 50)
 ```
 
 
@@ -102,46 +161,8 @@ The following diagram summarises the idea for the one-sample t-test and Wilcoxon
 test respectively. The question you are addressing is whether the blue horizontal
 line significantly differs from zero.
 
-```{r one_sample_t_test}
-# Generate normal data with known parameters
-rnorm_fixed = function(N, mu = 0, sd = 1)
-  scale(rnorm(N)) * sd + mu
-signed_rank = function(x) sign(x) * rank(abs(x))
-# Plot style.
-theme_axis = function(P,
-                      jitter = FALSE,
-                      xlim = c(-0.5, 2),
-                      ylim = c(-0.5, 2),
-                      legend.position = NULL) {
-  P = P + theme_bw(15) +
-    geom_segment(
-      x = -1000, xend = 1000,
-      y = 0, yend = 0,
-      lty = 2, color = 'dark gray', lwd = 0.5
-    ) +
-    geom_segment(
-      x = 0, xend = 0,
-      y = -1000, yend = 1000,
-      lty = 2, color = 'dark gray', lwd = 0.5
-    ) +
-    coord_cartesian(xlim = xlim, ylim = ylim) +
-    theme(
-      axis.title = element_blank(),
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      panel.border = element_blank(),
-      panel.grid = element_blank(),
-      legend.position = legend.position
-    )
-  
-  # Return jittered or non-jittered plot?
-  if (jitter) {
-    P + geom_jitter(width = 0.1, size = 2)
-  }
-  else {
-    P + geom_point(size = 2)
-  }
-}
+```{r one_sample_t_test, warning=FALSE}
+
 
 # T-test
 D_t1 = data.frame(y = rnorm_fixed(20, 0.5, 0.6),
@@ -169,3 +190,44 @@ P_t1_rank = ggplot(D_t1_rank, aes(y = y, x = 0)) +
 theme_axis(P_t1, ylim = c(-1, 2), legend.position = c(0.6, 0.1)) + 
   theme_axis(P_t1_rank, ylim = NULL,  legend.position = c(0.6, 0.1))
 ```
+
+In the above plot, notice how the original values are showing for the t.test
+plot, whereas the ranked (ordered) values are showing for the non-parametric
+Wilcoson plot.
+
+#### One-sample t-test
+This is how you can check whether your mean value for your data is different from
+zero, using the conventional built-in `t.test()` function, or when expressed
+as a linear model with `lm()`. Notice for the linear model, we are setting the
+explanatory variable to the number `1` as we simply want to check if we differ
+from zero.
+
+Let's try the two functions on a dataset `y` with 50 values (you will see 49
+degrees of freedom as a result)
+
+```{r, one_samp_t-setup}
+set.seed(40)
+# Data from example site
+y = c(rnorm(15), exp(rnorm(15)), runif(20, min = -3, max = 0))  # Almost zero mean, not normal
+x = rnorm_fixed(50, mu = 0, sd = 1)  # Used in correlation where this is on x-axis
+y2 = rnorm_fixed(50, mu = 0.5, sd = 1.5)  # Used in two means
+
+# Long format data with indicator
+value = c(y, y2)
+group = rep(c('y1', 'y2'), each = 50)
+
+```
+
+```{r one_samp_t, exercise=TRUE}
+# Built-in t-test
+a <- t.test(y)
+a
+
+# Equivalent linear model: intercept-only
+b <- lm(y ~ 1)
+summary(b)
+```
+
+Although the formatting of the output from the two tests is slightly different
+note that the mean (shown as *Estimate* for `lm`) t-statistics, p-values etc.
+are almost identical.
