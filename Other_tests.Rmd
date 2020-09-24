@@ -231,3 +231,60 @@ summary(b)
 Although the formatting of the output from the two tests is slightly different
 note that the mean (shown as *Estimate* for `lm`) t-statistics, p-values etc.
 are almost identical.
+
+## Paired t-tests
+Sometimes you will have a set of samples that are coupled together in some way.
+For example:
+
+* You collect water samples upstream and downstream from sewage outlets from
+30 different rivers, and test for the bacterial diversity in the samples. Now the
+bacterial biodiversity may well differ between your individual rivers. What you
+are really interested in is the **difference** in diversity upstream and downstream.
+So you first calculate the difference between the bacterial diversity, and then
+undertake a `t.test` or `lm` on the resulting difference.
+
+```{r paired_t_plot}
+# Data for plot
+N = nrow(D_t1)
+start = rnorm_fixed(N, 0.2, 0.3)
+D_tpaired = data.frame(
+  x = rep(c(0, 1), each = N),
+  y = c(start, start + D_t1$y),
+  id = 1:N
+)
+
+# Plot
+P_tpaired = ggplot(D_tpaired, aes(x = x, y = y)) +
+  geom_line(aes(group = id)) +
+  labs(title = '          Pairs')
+
+# Use patchwork to put them side-by-side
+theme_axis(P_tpaired) + theme_axis(P_t1, legend.position = c(0.6, 0.1))
+```
+
+The plot on the left shows the original samples, with the pairs (e.g. upstream or
+downstream of a sewer outflow) linked by lines. The plot above right shows the
+results of subtracting each pair from the other, that will be analysed to see 
+if the average of these subtractions is significantly different from zero.
+
+Here is an example of the analysis in R, using either the `t.test()` or `lm()`
+functions on a dataset of 50 paired values, the mean difference in the pairs 
+being -0.595. Is this value significantly different from zero?
+
+```{r paired_t_test_analysis, exercise=TRUE}
+t.test(y, y2, paired = TRUE) # Built-in paired t-test; note use of paired = TRUE
+
+b = lm(y - y2 ~ 1) # Equivalent linear model. Simply subtract the pairs
+summary(b)
+```
+
+Again you can see that the results from the two analyses are very similar. Note
+that the formula for the `lm()` function is of the structure
+
+$$Response \text{ ~ 1}$$
+where
+
+* $Response$ is $y - y2$ to show that the **differences** are being studied
+* $Explanatory$ is simply $1$ i.e. the mean (intercept in `lm`): are these differences the same as zero?
+
+
