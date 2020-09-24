@@ -80,4 +80,92 @@ You will often encounter t-statistics, often to check whether an estimated param
 from a model, such as an intercept or gradient, differs from zero. If the parameter
 is big (large negative or positive value), then the t-statistic will statistically
 significant (p<0.05), whereas if the parameter is roughly zero, the t-statistic will
-be non-significant (p>0.05).
+be non-significant (p>0.05). You may encounter several different types of t-tests,
+as well as their **non-parametric** equivalents.
+
+### What is a non-parametric test?
+Many statistical tests exist in non-parametric versions, including t-tests, and
+you may be asked about them from project supervisor or encounter them in textbooks.
+They work on **rankings** rather than the original raw data. So they would convert
+the response variable numbers `5.2, 1.8, 8.9` into `2, 3, 1` to represent their
+**order**. They can be useful when your data are very badly skewed, but they are
+far less powerful in detecting patterns.
+
+## One-sample t-test
+This is the simplest form of t-test. You are basically trying to determine whether
+your numbers differ from zero (either positively or negatively), or whether your
+dataset is roughly the same as zero. The non-parametric equivalent is known as
+the Wilcoxon signed-rank test. **Note** As all you are trying to do is determine
+whether a set of numbers differs from zero, there is not an explanatory variable.
+
+The following diagram summarises the idea for the one-sample t-test and Wilcoxon
+test respectively. The question you are addressing is whether the blue horizontal
+line significantly differs from zero.
+
+```{r one_sample_t_test}
+# Generate normal data with known parameters
+rnorm_fixed = function(N, mu = 0, sd = 1)
+  scale(rnorm(N)) * sd + mu
+signed_rank = function(x) sign(x) * rank(abs(x))
+# Plot style.
+theme_axis = function(P,
+                      jitter = FALSE,
+                      xlim = c(-0.5, 2),
+                      ylim = c(-0.5, 2),
+                      legend.position = NULL) {
+  P = P + theme_bw(15) +
+    geom_segment(
+      x = -1000, xend = 1000,
+      y = 0, yend = 0,
+      lty = 2, color = 'dark gray', lwd = 0.5
+    ) +
+    geom_segment(
+      x = 0, xend = 0,
+      y = -1000, yend = 1000,
+      lty = 2, color = 'dark gray', lwd = 0.5
+    ) +
+    coord_cartesian(xlim = xlim, ylim = ylim) +
+    theme(
+      axis.title = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      legend.position = legend.position
+    )
+  
+  # Return jittered or non-jittered plot?
+  if (jitter) {
+    P + geom_jitter(width = 0.1, size = 2)
+  }
+  else {
+    P + geom_point(size = 2)
+  }
+}
+
+# T-test
+D_t1 = data.frame(y = rnorm_fixed(20, 0.5, 0.6),
+                  x = runif(20, 0.93, 1.07))  # Fix mean and SD
+
+P_t1 = ggplot(D_t1, aes(y = y, x = 0)) + 
+  stat_summary(fun.y=mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y.., color='beta_0'), lwd=2) +
+  scale_color_manual(name = NULL, values = c("blue"), labels = c(bquote(beta[0] * " (intercept)"))) +
+  
+  geom_text(aes(label = round(y, 1)), nudge_x = 0.2, size = 3, color = 'dark gray') + 
+  labs(title='         T-test')
+
+# Wilcoxon
+D_t1_rank = data.frame(y = signed_rank(D_t1$y))
+
+P_t1_rank = ggplot(D_t1_rank, aes(y = y, x = 0)) + 
+  stat_summary(fun.y = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y..,  color = 'beta_0'), lwd = 2) +
+  scale_color_manual(name = NULL, values = c("blue"), labels = c(bquote(beta[0] * " (intercept)"))) +
+
+  geom_text(aes(label = y), nudge_x = 0.2, size = 3, color = 'dark gray') + 
+  labs(title='         Wilcoxon')
+
+
+# Stich together using patchwork
+theme_axis(P_t1, ylim = c(-1, 2), legend.position = c(0.6, 0.1)) + 
+  theme_axis(P_t1_rank, ylim = NULL,  legend.position = c(0.6, 0.1))
+```
