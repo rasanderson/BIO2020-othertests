@@ -55,6 +55,8 @@ theme_axis = function(P,
   }
 }
 
+signed_rank = function(x) sign(x) * rank(abs(x))
+
 ```
 
 
@@ -150,6 +152,22 @@ the response variable numbers `5.2, 1.8, 8.9` into `2, 3, 1` to represent their
 **order**. They can be useful when your data are very badly skewed, but they are
 far less powerful in detecting patterns.
 
+### Theory: rank-transformation
+
+The R command `rank` simply takes a list of numbers and "replaces" them with the
+integers of their rank (1st smallest, 2nd smallest, 3rd smallest, etc.). So the
+result of the rank-transformation `rank(c(3.6, 3.4, -5.0, 8.2))` is `3, 2, 1, 4`.
+
+A *signed* rank is the same, just where we rank according to absolute size first
+and then add in the sign second. So the signed rank here would be `2, 1, -3, 4`.
+Or in code:
+
+```{r}
+signed_rank = function(x) sign(x) * rank(abs(x))
+```
+
+I hope I don't offend anyone when I say that ranks are easy; yet it's all you need to do to convert most parametric tests into their "non-parametric" counterparts! One interesting implication is that *many "non-parametric tests" are about as parametric as their parametric counterparts with means, standard deviations, homogeneity of variance, etc. - just on rank-transformed data*. That's why I put "non-parametric" in quotation marks.
+
 ## One-sample t-test
 This is the simplest form of t-test. You are basically trying to determine whether
 your numbers differ from zero (either positively or negatively), or whether your
@@ -232,6 +250,41 @@ Although the formatting of the output from the two tests is slightly different
 note that the mean (shown as *Estimate* for `lm`) t-statistics, p-values etc.
 are almost identical.
 
+### Wilcoxon test
+This is the non-parametric (rank-based) equivalent. Here we use a signed-rank
+method. We can use the `wilcoxon.test()` or `t.test()` functions, but these are
+yet more functions to remember. Probably easier to think of it as a standard
+linear model, use `lm()` and add the `signed_rank()` function. The following all
+give the same results:
+
+```{r, wilcoxon-setup}
+set.seed(40)
+# Data from example site
+y = c(rnorm(15), exp(rnorm(15)), runif(20, min = -3, max = 0))  # Almost zero mean, not normal
+x = rnorm_fixed(50, mu = 0, sd = 1)  # Used in correlation where this is on x-axis
+y2 = rnorm_fixed(50, mu = 0.5, sd = 1.5)  # Used in two means
+
+# Long format data with indicator
+value = c(y, y2)
+group = rep(c('y1', 'y2'), each = 50)
+
+```
+
+```{r wilcoxon, exercise=TRUE}
+# a) Built-in
+wilcox.test(y)
+
+# b) Equivalent linear model
+b = lm(signed_rank(y) ~ 1)  # See? Same model as above, just on signed ranks
+summary(b)
+
+# c) Bonus: of course also works for one-sample t-test
+t.test(signed_rank(y))
+```
+
+The p-statistics are approximately the same for all three methods. With small
+sample sizes the `wilcox.test()` will be slightly more accurate.
+
 ## Paired t-tests
 Sometimes you will have a set of samples that are coupled together in some way.
 For example:
@@ -286,5 +339,26 @@ where
 
 * $Response$ is $y - y2$ to show that the **differences** are being studied
 * $Explanatory$ is simply $1$ i.e. the mean (intercept in `lm`): are these differences the same as zero?
+
+### Wilcoxon matched-pairs
+This is the non-parametric equivalent of the paired t-test. We can use the same
+trick as before, of subtracting the values for one pair from the other in the
+`lm()` function, but also using the `signed_rank()` function:
+
+```{r, wilcoxon-paired, exercise=TRUE}
+# a. Built-in Wilcoxon matched pairs
+wilcox.test(y, y2, paired = TRUE)
+
+# b. Equivalent linear model:
+b <- lm(signed_rank(y - y2) ~ 1)
+summary(b)
+
+# c. Bonus: identical to one-sample t-test one signed ranks
+t.test(signed_rank(y - y2))
+```
+
+Again, you can see that the p-values are fairly similar. Personally, I think that
+sticking to the `lm()` formulation is much simpler conceptually.
+
 
 
