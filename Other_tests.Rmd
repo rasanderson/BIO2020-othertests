@@ -652,4 +652,12 @@ between eye colour and hair colour, which is what we are interested in. The colu
 labelled `Rao` contains the $\chi^2$ value which is the same as our calculated 35.334,
 and highly significant.
 
+## Final comments
+Hopefully this section has shown you that many "traditional" statistical tests fall
+neatly into the (generalised) linear model framework, so that you don't feel quite
+so overwhelmed by all the different methods out there.
 
+You can find a good review of the subject for teaching statistics by this approach
+at
+
+<https://lindeloev.github.io/tests-as-linear/>
