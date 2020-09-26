@@ -511,3 +511,145 @@ a continuous variable (sometimes called a covariate) plus the interactions.
 You will find that for Two-way ANOVA with unbalanced data, and for ANCOVA the most
 accurate F-values are by using the `Anova()` function from the `car` package which
 does Type-III Sums of Squares.
+
+## Chi-squared tests
+You are probably familiar with these from Stage 1, where you look at 'contingency
+tables' giving the number of cases across two different variables, and calculate
+the **observed** and **expected** values for each combination, before calculating
+the overall Chi-squared statistic.
+
+Chi-squared tests often arise in genetics where you are comparing the **counts**
+of different individuals with certain observable phenotypes or traits. You may
+recall that we dealt with count data when we discussed **generalised linear
+models** and the `glm()` function with **Poisson** errors. This may give you
+a clue about one method of analysis.
+
+Let's take a very trivial example, do the calculation by hand (it is genuinely
+that simple), then compare the analysis using R's built-in command with that via
+a generalised linear model.
+
+### Example data
+Let's say we want to know whether there is a relationship between hair colour
+and eye colour in a random sample of students:
+
+| | Blue eyes | Brown eyes |
+|:-:|:-------:|:----------:|
+|Fair hair| 38 | 11 |
+| Dark hair | 14 | 51 |
+
+Obviously, this is a fairly simple example, and the results are so clear-cut that
+you don't really need any fancy statistics, but it is useful to work through the
+calculations nevertheless. What are the **predicted** frequencies? The simplest
+model is that hair and eye colour are **independent**. It is a nice model, as
+the maths are straightforward:
+
+* Expected probability of someone having fair hair? There were 49 people (38 + 11)
+students with fair hair, out of 114 students. So the expected probability is
+49 / 114
+* Expected probability of dark hair is (14 +51) / 114 = 65/114
+* As there are only two categories, not that these two probabilities add up
+to one ((49 + 65) / 114) = 1.0
+
+When doing these calculations by hand it is often easier to calculate the 
+marginal (row and column) totals:
+
+| | Blue eyes | Brown eyes | Row totals |
+|:-:|:-------:|:----------:|:----------:|
+|Fair hair| 38 | 11 | 49 |
+| Dark hair | 14 | 51 | 65 |
+| Column totals | 52 | 62 | 114 |
+
+Now what we want to find is, for example, the expected number of students with
+blue eyes **and** fair hair out of a class of 114 **if the two traits are
+independent**. The trick is that if two probabilities are independent you can
+multiply them together to find the overall probability for that feature:
+
+| | Blue eyes | Brown eyes | Row totals |
+|:-:|:-------:|:----------:|:----------:|
+|Fair hair| 49/114 * 52/114 | 49/114 * 62/114 | 49 |
+| Dark hair | 65/114 * 52/114 | 65/114 * 62/114  | 65 |
+| Column totals | 52 | 62 | 114 |
+
+This gives the following probabilities for each cell in your table
+
+| | Blue eyes | Brown eyes |
+|:-:|:-------:|:----------:|
+|Fair hair| 0.196 | 0.234 |
+| Dark hair | 0.260 | 0.310 |
+
+Notice that the four probabilities calculated above add up to 1.0  Now all you
+need to do is mulltiply the probabilities with 114, to calculate the expected
+numbers of students with each hair and eye colour combination if they are
+independent:
+
+| | Blue eyes | Brown eyes | Row totals |
+|:-:|:-------:|:----------:|:--:|
+|Fair hair| 22.35 | 26.65 | 49 |
+| Dark hair | 29.65 | 35.35 | 65 |
+| Column totals | 52 | 62 | 114 |
+
+Now you can calculate the chi-squared value, $\chi^2$, from:
+
+$$\chi^2 = \sum{\frac{(O - E)^2}{E}}$$
+where
+
+* $O$ = observed number
+* $E$ = expected number
+
+For your data you can do the calculations as
+
+| | $O$ | $E$ | $(O=E)^2$ | $\frac{(O - E)^2}{E}$ |
+|:-:|:--:|:--:|:---------:|:---------------------:|
+| Fair hair and blue eyes | 38 | 22.35 | 244.92 | 10.96 |
+| Fair hair and brown eyes | 11 | 26.65 | 244.92 | 9.19 |
+| Dark hair and blue eyes | 14 | 29.65 | 244.92 | 8.26 |
+| Dark hair and brown eyes | 51 | 35.35 | 244.92 | 6.93 |
+
+Add up all four values in the final column to get $\chi^2 = 35.33$ This can be
+compared to the expected $\chi^2$ value if the hair and eye colour traits really
+were independent, for the relevant degrees of freedom. In this case the 5% level
+is only 3.84, and since our calculated value is (much) bigger at 35.33 we can
+reject the hypothesis of independence between hair and eye colour.
+
+### Doing the calculations automatically
+That was a bit of a marathon, but hopefully was a useful refresher for your
+memory. Let's do the same calculations in R. There are two ways of doing the
+analysis, either the `chisq.test()` function, which requires you to input a
+table of data, or via `glm()` where the data are "long" in two columns
+
+First, as a table:
+
+```{r, chi_sq, exercise = TRUE}
+haireye_table <- data.frame( blue = c(38, 14), brown = c(11, 51))
+haireye_table
+
+chisq.test(haireye_table)
+
+# The result is highly significant, but note the chi-squared is slightly different
+# to the one we calculated by hand. R automatically applies 'Yates correction'
+# To remove this:
+chisq.test(haireye_table, correct = FALSE)
+```
+
+Now the alternative approach, using a `glm()`. Here the data are in 'long' format
+and we use the $response ~ explanatory$ style, plus interaction. As you are
+working with count data, specify `family = "poisson"`. Finally, we use the **Rao**
+correction in the anova call, as this approximates to $\chi^2$ better:
+
+```{r chi_sq_glm, exercise = TRUE}
+haireye_lng <- data.frame( counts = c(38, 14, 11, 51),
+                           eye = c("blue", "blue", "brown", "brown"),
+                           hair = c("fair", "dark", "fair", "dark"))
+haireye_lng
+
+# glm equivalent
+haireye_glm <- glm(counts ~ eye + hair + eye:hair, family = "poisson", data=haireye_lng)
+anova(haireye_glm, test="Rao")
+```
+
+The line to focus on is the row labelled `eye:hair` for the interaction (relationship)
+between eye colour and hair colour, which is what we are interested in. The column
+labelled `Rao` contains the $\chi^2$ value which is the same as our calculated 35.334,
+and highly significant.
+
+
