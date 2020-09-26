@@ -498,3 +498,16 @@ sqrt(summary(b)$r.squared) # Or simply look at the summary output and sqrt(0.496
 In general try to avoid non-parametric tests when possible, due to their lower
 statistical power.
 
+## Ony-way ANOVA, two-way ANOVA, ANCOVA
+Actually, you've already done these using `lm()` which in my opinion is definitely
+the easiest way of doing the analyses.  Just to recap, in all three cases the
+response is a continuous variable, and the explanatories are:
+
+* One-way ANOVA. `lm()` One explanatory factor (categorical variable) with 3 or more levels
+* Two-way ANOVA. `lm()` Two explanatory factors (categorical variables) plus their interaction
+* ANCOVA `lm()` with two explanatory variables, one a factor (categorical), the other
+a continuous variable (sometimes called a covariate) plus the interactions.
+
+You will find that for Two-way ANOVA with unbalanced data, and for ANCOVA the most
+accurate F-values are by using the `Anova()` function from the `car` package which
+does Type-III Sums of Squares.
