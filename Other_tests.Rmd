@@ -10,6 +10,7 @@ library(mosaic)
 library(ggformula)
 library(patchwork)
 library(sm)
+library(bio2020)
 knitr::opts_chunk$set(echo = FALSE)
 
 # Functions from example site
@@ -418,3 +419,82 @@ first level of your explanatory, i.e. `site1`
 * The `Estimate` for `group_codessite2` is the **difference** in the mean value of
 the two levels of your explanatory, which is significant
 * The absolute value of the t-statistic is the same for either the `lm()` or `t.test()` methods
+
+## Correlation
+You're probably familiar with correlation already. High correlation shows a strong
+relationship between two variables, and low correlation occurs when there is a lot
+of scatter
+
+```{r correlation_plot, warning=FALSE}
+set.seed(40)
+var1 <- rnorm(30, 15, 0.5)
+var2 <- var1 * 8 + rnorm(30, 2, 1.51)
+var3 <- var1 * 8 + rnorm(30, 2, 6)
+
+p1 <- gf_point(var2 ~ var1, xlab = "variable 1", ylab="variable 2",
+               title = paste("Correlation =", round(cor(var1, var2), 3))) %>% 
+  gf_lm(var2 ~ var1) %>% 
+  gf_lims(x = c(14, 16), y = c(105, 135))
+
+ 
+p2 <- gf_point(var3 ~ var1, xlab = "variable 1", ylab="variable 3",
+               title = paste("Correlation =", round(cor(var1, var3), 3))) %>% 
+  gf_lm(var3 ~ var1) %>% 
+  gf_lims(x = c(14, 16), y = c(105, 135)) 
+
+multi_plot(p1, p2, cols=2)
+```
+
+You can see that the correlation is lower on the plot on the right, where the
+scatter around the line is much bigger. You can calculate the correlation
+coefficient with the `cor()` function. Notice that **correlation does not
+imply causality**. Although the plots above show _variable 1_ on the x-axis and
+_variable 2_ on the y-axis, they could just as easily be the other way round.
+Note also that the gradients of the two lines are roughly the same, but that
+does not affect the correlation.
+
+```{r, correlation_test, exercise=TRUE}
+# Simple correlation coefficient
+cor(var3, var1)
+
+#  cor.test function
+cor.test(var3, var1, method="pearson")
+
+# Using lm function
+c <- lm(var3 ~ var1)
+summary(c)
+sqrt(summary(c)$r.squared) # or simply sqrt(0.4856)
+```
+
+The `summary()` of the `lm()` function actually prints out the R-squared value,
+which is the % variation explained, rather than the correlation coefficient. To
+obtain the correlation coefficient simply run the `sqrt()` function on the R-
+squared value output from the summary, e.g. `sqrt(0.4856)` in this specific 
+example, or the slightly longer `sqrt(summary(c)$r.squared)` where `c` is the
+results of your `lm()` function for a more general approach.
+
+Play around with the code in the above exercise; you will notice that the 
+correlation coefficient, r, is unchanged irrespective of whether var3 or var1 is
+first in the `lm()` function call.
+
+### Rank correlation
+Again, if your data are very highly skewed you might want to try a non-parametric
+method, although sometimes it is better to transform your data (e.g. with logarithms).
+Rank correlation is usually referred to as **Spearman** rank correlation. Again,
+you can do it with the built-in R command, or the `lm()` function. For the `lm()`
+function we simply have to `rank()` the values from lowest to highest first. Rank
+correlation is referred to by the Greek letter rho, shown as $\rho$ .
+
+```{r, rank_correlation, exercise = TRUE}
+# Built-in method
+cor.test(var3, var1, method="spearman")
+
+# lm
+b <- lm(rank(var3) ~ rank(var1))
+summary(b)
+sqrt(summary(b)$r.squared) # Or simply look at the summary output and sqrt(0.4964)
+```
+
+In general try to avoid non-parametric tests when possible, due to their lower
+statistical power.
+
