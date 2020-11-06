@@ -140,40 +140,40 @@ significant (p<0.05), whereas if the parameter is roughly zero, the t-statistic 
 be non-significant (p>0.05). You may encounter several different types of t-tests,
 as well as their **non-parametric** equivalents.
 
-### What is a non-parametric test?
-Many statistical tests exist in non-parametric versions, including t-tests, and
-you may be asked about them from project supervisor or encounter them in textbooks.
-They work on **rankings** rather than the original raw data. So they would convert
-the response variable numbers `5.2, 1.8, 8.9` into `2, 3, 1` to represent their
-**order**. They can be useful when your data are very badly skewed, but they are
+## Parametric and non-parametric tests
+The most useful and powerful statistical tests are conventional "parametric" tests. However, many statistical tests exist in non-parametric versions of their conventional parametric versions, which can be used when you have highly skewed data with a few extreme outliers. I would avoid them if possible, as they are based on **rankings** rather than the original raw data. So they would convert the numbers `5.2, 1.8, 8.9` into `2, 3, 1` to represent their
+**order**. Whilst they can be useful when your data are very badly skewed, they are
 far less powerful in detecting patterns.
+
+**Whenever possible, use conventional parametric tests rather than non-parametric rank-based tests** as rank-based methods are less useful.
 
 ### Theory: rank-transformation
 
-The R command `rank` simply takes a list of numbers and "replaces" them with the
-integers of their rank (1st smallest, 2nd smallest, 3rd smallest, etc.). So the
-result of the rank-transformation `rank(c(3.6, 3.4, -5.0, 8.2))` is `3, 2, 1, 4`.
+The R command `rank` simply takes a list of numbers and "replaces" them with the integers of their rank (1st smallest, 2nd smallest, 3rd smallest, etc.). So the result of the rank-transformation. A *signed* rank is the same, just where we rank according to absolute size first and then add in the sign second.
 
-A *signed* rank is the same, just where we rank according to absolute size first
-and then add in the sign second. So the signed rank here would be `2, 1, -3, 4`.
-Or in code:
+To get a better understanding of ranked data, play with the following code, changing the values of the data used in `my_tiny_dat`. There is not a built-in R function for signed-ranks, but we can easily create one as shown on the first line.
 
-```{r}
-signed_rank = function(x) sign(x) * rank(abs(x))
+```{r signed_rank_exercise, exercise=TRUE}
+# Create a simple function for signed_rank
+signed_rank <- function(x) sign(x) * rank(abs(x))
+
+# Example dataset
+my_tiny_dat <- c(3.6, 2.4, -6.3, -4.1, 8.2)
+
+my_tiny_dat        # Original values
+rank(my_tiny_dat)  # Rankings are 1 for lowest (-6.3) to 5 for the highest (+8.2)
+signed_rank(my_tiny_dat) # Rankings -4 for lowest to +5 for highest, as +/- sign included
 ```
 
-I hope I don't offend anyone when I say that ranks are easy; yet it's all you need to do to convert most parametric tests into their "non-parametric" counterparts! One interesting implication is that *many "non-parametric tests" are about as parametric as their parametric counterparts with means, standard deviations, homogeneity of variance, etc. - just on rank-transformed data*. That's why I put "non-parametric" in quotation marks.
+Creating ranks is all you need to do to convert most parametric tests into their "non-parametric" counterparts! This means that **many "non-parametric tests" are very similar to the conventional parametric counterparts, but use rank-transformed data**. However, remember that as they convert your data into "first", "second" etc. you are **losing information** so they are less powerful.
 
 ## One-sample t-test
-This is the simplest form of t-test. You are basically trying to determine whether
-your numbers differ from zero (either positively or negatively), or whether your
-dataset is roughly the same as zero. The non-parametric equivalent is known as
-the Wilcoxon signed-rank test. **Note** As all you are trying to do is determine
-whether a set of numbers differs from zero, there is not an explanatory variable.
+This is the simplest form of t-test. You are basically trying to determine whether:
 
-The following diagram summarises the idea for the one-sample t-test and Wilcoxon
-test respectively. The question you are addressing is whether the blue horizontal
-line significantly differs from zero.
+* the mean of your set of numbers is different from zero (either positively or negatively), or
+* whether the mean of your set of numbers is roughly the same as zero
+
+The following diagram summarises the idea for the one-sample t-test. The question you are addressing is whether the blue horizontal line significantly differs from zero. The diagram for the left shows the conventional parametric **one-sample t-test**, that on the right the non-parametric equivalent using ranks, known as the **Wilcoxon test**. The one on the left is most useful.
 
 ```{r one_sample_t_test, warning=FALSE}
 
@@ -212,12 +212,39 @@ Wilcoson plot.
 #### One-sample t-test
 This is how you can check whether your mean value for your data is different from
 zero, using the conventional built-in `t.test()` function, or when expressed
-as a linear model with `lm()`. Notice for the linear model, we are setting the
-explanatory variable to the number `1` as we simply want to check if we differ
-from zero.
+as a linear model with `lm()`. Throughout this course I have been trying to encourage you to think in terms of:
 
-Let's try the two functions on a dataset `y` with 50 values (you will see 49
-degrees of freedom as a result)
+$$Response=Explanatory+\epsilon$$
+You are probably a bit puzzled, as if all we are doing is checking whether our data differs from zero, **Explanatory**. Think about some of the results of the simple linear models you created in Practical 2 using the `lm()` function. It always output a variable called `(Intercept)`. R does this automatically. If you have categorical responses, the Intercept is the overall mean (average) of all your response data. So in reality R is actually fitting:
+
+$$Response = Intercept + Explanatory + \epsilon$$
+
+but you don't need to type in the word "Intercept" do get it to do this. In fact R uses the number `1` to indicate the intercept and automatically assumes it is there. So the two lines
+
+`simple_lm <- lm(y ~ x, data=my_dat)`
+
+and
+
+`simple_lm <- lm(y ~ 1 + x, data=my_dat)`
+
+are exactly the same.
+
+**But we don't have any explanatories?!**
+If all you want to do is see if the overall average of your numbers differs from zero, you do not of course have a set of explanatories. You can tell simply tell R to only fit the `(Intercept)` term, which as we have just seen will be the overall average.  So we simply need something like:
+
+`simple_ttest <- lm(y ~ 1, data=my_dat)`
+
+R has a built-in function called `t.test()` which does the same thing, but I think the "response ~ explanatory" philosophy is clearer.
+
+### Data for one-sample t-test
+The simplest thing is for you to enter a single column of values into Excel (include a column header with a name, no spaces). Then remember to save it in **.CSV** format into your **`Data`** sub-folder in your `BIO2020` folder, e.g. `mynumbers.csv`. Then you simply need:
+
+`y <- read.csv("Data/mynumbers.csv")`
+
+to import your column of values into R in the usual way with `read.csv()`.
+
+### Example of one-sample t-test via both built-in command and linear model
+Let's try the two functions, `t.test()` and `lm()` on a dataset `y` with 50 values (you will see 49 degrees of freedom as a result).
 
 ```{r, one_samp_t-setup}
 set.seed(40)
@@ -233,6 +260,9 @@ group = rep(c('y1', 'y2'), each = 50)
 ```
 
 ```{r one_samp_t, exercise=TRUE}
+# Check what the mean of your set of 50 numbers is
+mean(y)
+
 # Built-in t-test
 a <- t.test(y)
 a
@@ -243,15 +273,11 @@ summary(b)
 ```
 
 Although the formatting of the output from the two tests is slightly different
-note that the mean (shown as *Estimate* for `lm`) t-statistics, p-values etc.
-are almost identical.
+note that the mean (shown as `(Intercept)` Estimate for `lm`), t-statistics and p-values etc.
+are almost identical. As the p-value here is **greater** than 0.05, we can state that there is no significant difference between the average of these data ```r mean(y)``` and zero.
 
 ### Wilcoxon test
-This is the non-parametric (rank-based) equivalent. Here we use a signed-rank
-method. We can use the `wilcoxon.test()` or `t.test()` functions, but these are
-yet more functions to remember. Probably easier to think of it as a standard
-linear model, use `lm()` and add the `signed_rank()` function. The following all
-give the same results:
+This is the non-parametric (rank-based) equivalent. Here we use a signed-rank method. We can use the `wilcoxon.test()` or `t.test()` functions, but these are yet more functions to remember. Probably easier to think of it as a standard linear model, use `lm()` and add the `signed_rank()` function. The following give the same results:
 
 ```{r, wilcoxon-setup}
 set.seed(40)
@@ -271,15 +297,12 @@ group = rep(c('y1', 'y2'), each = 50)
 wilcox.test(y)
 
 # b) Equivalent linear model
-b = lm(signed_rank(y) ~ 1)  # See? Same model as above, just on signed ranks
+b = lm(signed_rank(y) ~ 1)  # Same lm model as above, just on signed ranks
 summary(b)
 
-# c) Bonus: of course also works for one-sample t-test
-t.test(signed_rank(y))
 ```
 
-The p-statistics are approximately the same for all three methods. With small
-sample sizes the `wilcox.test()` will be slightly more accurate.
+The p-statistics are approximately the same for both methods. With very small sample sizes the `wilcox.test()` will be slightly more accurate. Again, the p-value is **greater** than 0.05, indicating that your set of numbers is **not** significantly different from zero.
 
 ## Paired t-tests
 Sometimes you will have a set of samples that are coupled together in some way.
@@ -290,7 +313,10 @@ For example:
 bacterial biodiversity may well differ between your individual rivers. What you
 are really interested in is the **difference** in diversity upstream and downstream.
 So you first calculate the difference between the bacterial diversity, and then
-undertake a `t.test` or `lm` on the resulting difference.
+undertake a `t.test` or `lm` on the result, to see if it is significantly different from zero.
+* You take blood samples from 15 cattle before and after they have received a feed supplement, and want to know if the supplement has any effect on haemoglobin level. Given that haemoglobin is unlikely to be the same amongst all 15 cows even before you do the study, what you really want to know is whether the **difference** in haemoglobin before and after the feed is significant from zero.
+
+We can illustrate this idea with the following plot:
 
 ```{r paired_t_plot}
 # Data for plot
@@ -314,47 +340,72 @@ theme_axis(P_tpaired) + theme_axis(P_t1, legend.position = c(0.6, 0.1))
 The plot on the left shows the original samples, with the pairs (e.g. upstream or
 downstream of a sewer outflow) linked by lines. The plot above right shows the
 results of subtracting each pair from the other, that will be analysed to see 
-if the average of these subtractions is significantly different from zero.
+if the average of these subtractions is significantly different from zero. So, there is a very slight change to our original model for the one-sample t-test of:
 
-Here is an example of the analysis in R, using either the `t.test()` or `lm()`
-functions on a dataset of 50 paired values, the mean difference in the pairs 
-being -0.595. Is this value significantly different from zero?
+$$Response=Intercept + \epsilon$$
+
+to become:
+
+$$ResponseA-ResponseB=Intercept + \epsilon$$
+For the biodiversity upstream and downstream of sewers in 30 rivers, this equates to:
+
+$$BiodiversityUpstream-BiodiversityDownstream=Intercept + \epsilon$$
+whilst for the blood haemoglobin in 15 cows before and after the food supplement it is:
+
+$$HaemoglobinBeforeFeed-HaemoglobinAfterFeed = Intercept + \epsilon$$
+
+### Data for a paired t-test
+Again, you'll find it easiest to enter it into Excel, saving it as a `.CSV` format file. However, now you will need **2** columns of data, labelled e.g. `upstream` and `downstream`, or `beforefeed` and `afterfeed` for the rivers and cattle examples respectively. As usual, save your .csv files in your **`Data`** folder, and use `read.csv()` to import it into R.
+
+```{r echo=FALSE}
+cows_dat <- data.frame(before_feed = y[1:15]+2, after_feed = y2[1:15]+2)
+```
+
+Here is an example of the analysis in R, using either the built-in `t.test()` or `lm()`
+functions on a dataset of 15 cattle with blood haemoglobin, before and after receiving a food supplement. In this example, the two columns are labelled `before_feed` and `after_feed`, the mean difference haemoglobin in the cows before and after being ```r mean(before_feed - after_feed ~ NULL, data=cows_dat)``` . Is this value significantly different from zero?
+
+```{r paired_t_test_analysis-setup}
+cows_dat <- data.frame(before_feed = y[1:15]+2, after_feed = y2[1:15]+2)
+```
 
 ```{r paired_t_test_analysis, exercise=TRUE}
-t.test(y, y2, paired = TRUE) # Built-in paired t-test; note use of paired = TRUE
+# Display the top of the two columns, and summary info
+head(cows_dat)
+summary(cows_dat)
 
-b = lm(y - y2 ~ 1) # Equivalent linear model. Simply subtract the pairs
+# Display the average of the difference in the two columns
+mean(before_feed-after_feed ~ NULL, data=cows_dat)
+
+# Built-in paired t-test; note use of paired = TRUE
+t.test(cows_dat$before_feed, cows_dat$after_feed, paired = TRUE)
+
+# Equivalent linear model. Simply subtract the haemoglobin values for each cow
+b = lm(before_feed - after_feed ~ 1, data=cows_dat) 
 summary(b)
 ```
 
-Again you can see that the results from the two analyses are very similar. Note
-that the formula for the `lm()` function is of the structure
+Again you can see that the results from the two analyses are very similar. The syntax of the conventional `t.test()` function is a bit clumsy, as you need to specify both the data.frame name (`cows_dat`) with the column using the `$` specifier. The `lm()` formulation is much simpler. We set `~ 1` as the explanatory, to indicate that we are only testing whether the overall mean (of the differences) is zero or not. Note that the `(Intercept)` value of ```r mean(before_feed - after_feed ~ NULL, data=cows_dat)``` is the average of the differences in haemoglobin, before and after feed.
 
-$$Response \text{ ~ 1}$$
-where
+As the p-value is greater than 0.05, we assume that the cattle feed supplement is not having a significant effect on blood haemoglobin.
 
-* $Response$ is $y - y2$ to show that the **differences** are being studied
-* $Explanatory$ is simply $1$ i.e. the mean (intercept in `lm`): are these differences the same as zero?
 
 ### Wilcoxon matched-pairs
 This is the non-parametric equivalent of the paired t-test. We can use the same
 trick as before, of subtracting the values for one pair from the other in the
-`lm()` function, but also using the `signed_rank()` function:
+`lm()` function, but also using the `signed_rank()` function. Remember that you will have to create the `signed_rank()` function yourself:
 
 ```{r, wilcoxon-paired, exercise=TRUE}
 # a. Built-in Wilcoxon matched pairs
-wilcox.test(y, y2, paired = TRUE)
+wilcox.test(cows_dat$before_feed, cows_dat$after_feed, paired = TRUE)
 
 # b. Equivalent linear model:
-b <- lm(signed_rank(y - y2) ~ 1)
+b <- lm(signed_rank(before_feed - after_feed) ~ 1, data=cows_dat)
 summary(b)
 
-# c. Bonus: identical to one-sample t-test one signed ranks
-t.test(signed_rank(y - y2))
 ```
 
 Again, you can see that the p-values are fairly similar. Personally, I think that
-sticking to the `lm()` formulation is much simpler conceptually.
+sticking to the `lm()` formulation is much simpler conceptually, and requires slightly less typing. Remember to create the `signed_rank()` function yourself before you use it, as shown on the Parametric and non-parametric tests page.
 
 ## Independent t-test
 This is the basic t-test, sometimes referred to as "Student's t-test". Basically
