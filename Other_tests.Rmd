@@ -1,5 +1,5 @@
 ---
-title: "Other statistical tests"
+title: "Using the linear model framework to do other common statistical tests"
 output: learnr::tutorial
 runtime: shiny_prerendered
 ---
@@ -85,7 +85,22 @@ This website simply compares some of the commonly encounted statistical tests
 in their __linear model__ format and their __built-in__ format. You can find
 full details of this philosphy for teaching statistics at https://lindeloev.github.io/tests-as-linear/
 
-### t-distribution
+### Overall philsophy
+The key thing to remember is that all these tests can be considered within the (generalised) linear model framework. Most can be considered as linear models, although there are a handful that need generalised linear models (GLMs). The overall philosophy is unchanged, i.e.:
+
+$$Response = Explanatory + \epsilon$$
+
+where
+
+* Response is what you have measured, you assume it changes as a result of e.g a treatment you have applied
+* Explanatory is typically your "treatment" in a laboratory experiment etc.
+* $\epsilon$ is the unexplained noise in your data
+
+What can be a little confusing is that some of the simpler tests do not need you to explicitly include an explanatory variable. Some of these simple tests also may require two response variables. We will cover these examples as we go through this website.
+
+Although this website shows you both the conventional built-in command R has for these tests, in common with all statistical software, the big advantage of the `lm()` or `glm()` approach is that it helps you understand that these tests are all variations on a theme, and that really what you are trying to do in every case is fit a **statistical model** to your data. The data format is consistent for `lm()` and `glm()` whereas it is inconsistent for the built-in tests, and plotting of graphs is easier when data are prepared for `lm()` and `glm()`. I would therefore **strongly encourage** you to use `lm()`, and occasionally `glm()` to do these tests, rather than the conventional built-in commands.
+
+## t-distribution
 A lot of 'standard' statistical tests use the t-distribution, and you will often
 here people refer to 't-tests', 'paired t-tests', 'one-sample t-tests'. These are
 generally introduced early in statistics courses, as they are all relatively 
@@ -151,7 +166,11 @@ far less powerful in detecting patterns.
 
 The R command `rank` simply takes a list of numbers and "replaces" them with the integers of their rank (1st smallest, 2nd smallest, 3rd smallest, etc.). So the result of the rank-transformation. A *signed* rank is the same, just where we rank according to absolute size first and then add in the sign second.
 
-To get a better understanding of ranked data, play with the following code, changing the values of the data used in `my_tiny_dat`. There is not a built-in R function for signed-ranks, but we can easily create one as shown on the first line.
+To get a better understanding of ranked data, play with the following code, changing the values of the data used in `my_tiny_dat`. There is not a built-in R function for signed-ranks, but we can easily create one:
+
+`signed_rank <- function(x) sign(x) * rank(abs(x))`
+
+This looks a bit cryptic, but it creates your own function, called `signed_rank()` to which we give a set of numbers. The easiest way to see what it does is to create it, and run it with some example code as shown below:
 
 ```{r signed_rank_exercise, exercise=TRUE}
 # Create a simple function for signed_rank
@@ -164,6 +183,8 @@ my_tiny_dat        # Original values
 rank(my_tiny_dat)  # Rankings are 1 for lowest (-6.3) to 5 for the highest (+8.2)
 signed_rank(my_tiny_dat) # Rankings -4 for lowest to +5 for highest, as +/- sign included
 ```
+
+**Important** Whenever you want to do a signed-rank test, remember to include the single line from above to create your `signed_rank()` function.
 
 Creating ranks is all you need to do to convert most parametric tests into their "non-parametric" counterparts! This means that **many "non-parametric tests" are very similar to the conventional parametric counterparts, but use rank-transformed data**. However, remember that as they convert your data into "first", "second" etc. you are **losing information** so they are less powerful.
 
@@ -408,8 +429,8 @@ Again, you can see that the p-values are fairly similar. Personally, I think tha
 sticking to the `lm()` formulation is much simpler conceptually, and requires slightly less typing. Remember to create the `signed_rank()` function yourself before you use it, as shown on the Parametric and non-parametric tests page.
 
 ## Independent t-test
-This is the basic t-test, sometimes referred to as "Student's t-test". Basically
-you are trying to compare two means to see if they are different:
+This is the basic t-test, sometimes referred to as **Student's t-test**. Basically
+you are trying to **compare two means** to see if they are different:
 
 ```{r, warning=FALSE}
 # Data
@@ -431,45 +452,63 @@ P_t2 = ggplot(D_t2, aes(x=x, y=y)) +
 theme_axis(P_t2, jitter = TRUE, xlim = c(-0.3, 2), legend.position = c(0.53, 0.08))
 ```
 
-You can use the `t.test()` function or the `lm()` function. For the latter, it
-is easier if your data are in long format, i.e. the response in one column,
-and an explanatory **factor** for the two means in the other. If they are in
-two columns, a little bit more work is needed.
+You might be wondering **How does this differ from a standard linear model, with a categorical explanatory variable that contains 2 levels?** Well, the short answer is, it doesn't, it is basically the same analysis with a different name! The long answer is that in simple situations like this it is conventional to report the t-statistic rather than the F-ratio, partly as the t-distribution can correct for small sample sizes (you may have noticed that the t-distribution and normal distribution are very similar, but not exactly the same). So the basic model you are working with is:
+
+$$Response = Explanatory + \epsilon$$
+
+where your _Explanatory_ variable is categorical, with only 2 categories (levels).
+
+### Data entry for Student's t-test
+Again, use Microsoft Excel, but save in `.CSV` format. However, the way in which you enter your data might be slightly different:
+
+* for the built-in `t.test()` function enter it as two columns, i.e. "wide" data format. The first for one level of your explanatory variable, the second for the other one. The explanatory variable is not explictly coded, but simply indicated by the two columns.
+* if using `lm()` function, two columns, but in "long" data format. The first column is all of the data, and the second the two categories of your explanatory (factor) variable which has two levels.
+
+The latter is amenable to boxplots, violinplots etc. You can't do this with the former, so this is another advantage of sticking to the "response ~ explanatory" template.
+
+This example looks at the nerve electro-potential responses in 100 frog muscle samples with and without a cholinesterase inhibitor:
+
 
 ```{r, student_t_test-setup}
-y_values <- c(y, y2)
-group_codes <- c(rep("site1", 50), rep("site2", 50))
-t_data <- data.frame(y_values = y_values, group_codes=group_codes)
+electro_wde <- data.frame(control = y, inhibitor=y2+0.25)
+y_values <- c(y, y2+0.25)
+group_codes <- c(rep("control", 50), rep("inhibitor", 50))
+electro_lng <- data.frame(electropotent = y_values, treatment=as.factor(group_codes))
 ```
 
 
 ```{r, student_t_test, exercise=TRUE}
-# a. Built-in independent t-test on wide data 
+# a. Built-in independent t-test on wide data
+# Scroll up and down to view data after running code
+print(electro_wde)
+summary(electro_wde)
 # data from y and y2 are two different columns, y and y2
-t.test(y, y2, var.equal = TRUE)
+t.test(electro_wde$control, electro_wde$inhibitor, var.equal = TRUE)
 
-# b. For lm it is easiest if there is one longer column for all the response
-# data, and a single explanatory giving a code for which level is being compared
-# Here the explanatory is called group_codes, with 2 sites, but it could just as
-# easily be 2 laboratory treatments.
-print(t_data)
+
+# b. lm 
+# Scroll up and down to view data after running code
+print(electro_lng)
+summary(electro_lng)
 
 # Simply use lm in the usual way
-b <- lm(y_values ~ group_codes, data=t_data)
+b <- lm(electropotent ~ treatment, data=electro_lng)
 summary(b)
 
+# An advantage of long format is plotting
+gf_boxplot(electropotent ~ treatment, data=electro_lng)
 ```
 
 
-The p-values and t-statistics are roughly the same for the two functions, but again
-I think that sticking to the `lm()` structure gives greater consistency and
-clarity than `t.test()`. In the `lm()` output note that:
+The p-values and t-statistics are roughly the same for the two functions, but again I think that sticking to the `lm()` structure gives greater consistency and clarity than `t.test()`. The big advantage of your `lm()` approach is also that you can easily plot the data in the usual way. In the `lm()` output note that:
 
 * The `Estimate` on the row marked `Intercept` is actually the mean value for the
-first level of your explanatory, i.e. `site1`
-* The `Estimate` for `group_codessite2` is the **difference** in the mean value of
-the two levels of your explanatory, which is significant
+first level of your explanatory, i.e. `control` (first level because `c` for `control` comes before `i` for `inhibitor` in the alphabet)
+* The `Estimate` for `treatmentinhibitor` is the **difference** in the mean value of
+the two levels of your explanatory. This difference is statistical significant as p<0.05 atp=0.012
 * The absolute value of the t-statistic is the same for either the `lm()` or `t.test()` methods
+
+When reporting the `lm()` results you would write something like **"There was an increase of 0.845 ($\mu$/s) in the electro-potential of muscles receiving cholinesterase (t=2.553, p=0.012, df=98)"**. Note that the t-statistic as well as the p-value is quoted. As you can see, the `t.test()` and `lm()` approaches give roughly identical results, but personally I think the `lm()` method is much easier, and amenable to plotting data etc.
 
 ## Correlation
 You're probably familiar with correlation already. High correlation shows a strong
