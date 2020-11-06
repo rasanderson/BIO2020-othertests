@@ -3,4 +3,5 @@
 .RData
 .Ruserdata
 *.html
-Other_tests_files/*
+rsconnect*
+Other_tests_files*
