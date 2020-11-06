@@ -10,7 +10,7 @@ library(mosaic)
 library(ggformula)
 library(patchwork)
 library(sm)
-library(bio2020)
+
 knitr::opts_chunk$set(echo = FALSE)
 
 # Functions from example site
@@ -532,10 +532,12 @@ p2 <- gf_point(var3 ~ var1, xlab = "variable 1", ylab="variable 3",
   gf_lm(var3 ~ var1) %>% 
   gf_lims(x = c(14, 16), y = c(105, 135)) 
 
-multi_plot(p1, p2, cols=2)
+#multi_plot(p1, p2, cols=2)
+plot(p1)
+plot(p2)
 ```
 
-You can see that the correlation is lower on the plot on the right, where the
+You can see that the correlation is lower on the second plot, where the
 scatter around the line is much bigger. You can calculate the correlation
 coefficient with the `cor()` function. Notice that **correlation does not
 imply causality**. Although the plots above show _variable 1_ on the x-axis and
